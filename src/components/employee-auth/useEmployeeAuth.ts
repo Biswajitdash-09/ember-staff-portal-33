@@ -27,12 +27,15 @@ export const useEmployeeAuth = (onClose: () => void) => {
     setIsLoading(true);
 
     try {
+      console.log('🔐 Employee login attempt:', formData.email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email.trim(),
         password: formData.password.trim(),
       });
 
       if (error) {
+        console.error('❌ Employee login error:', error);
         toast({
           title: "Login Failed",
           description: error.message,
@@ -42,14 +45,28 @@ export const useEmployeeAuth = (onClose: () => void) => {
       }
 
       if (data.user) {
+        console.log('✅ User authenticated, checking employee role...');
+        
         // Check if user is an employee
-        const { data: roleData } = await supabase
+        const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', data.user.id)
           .single();
 
+        if (roleError) {
+          console.error('❌ Role check error:', roleError);
+          await supabase.auth.signOut();
+          toast({
+            title: "Access Error",
+            description: "Unable to verify employee access. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
         if (roleData?.role !== 'employee') {
+          console.log('❌ User is not an employee:', roleData);
           await supabase.auth.signOut();
           toast({
             title: "Access Denied",
@@ -59,6 +76,7 @@ export const useEmployeeAuth = (onClose: () => void) => {
           return;
         }
 
+        console.log('✅ Employee access confirmed, redirecting...');
         toast({
           title: "Login Successful",
           description: "Welcome back! Redirecting to your dashboard...",
@@ -68,6 +86,7 @@ export const useEmployeeAuth = (onClose: () => void) => {
         navigate('/employee-dashboard');
       }
     } catch (error) {
+      console.error('❌ Unexpected employee login error:', error);
       toast({
         title: "Login Error",
         description: "An unexpected error occurred. Please try again.",
@@ -83,6 +102,8 @@ export const useEmployeeAuth = (onClose: () => void) => {
     setIsLoading(true);
 
     try {
+      console.log('📝 Employee signup attempt:', formData.email);
+      
       const { data, error } = await supabase.auth.signUp({
         email: formData.email.trim(),
         password: formData.password.trim(),
@@ -99,6 +120,7 @@ export const useEmployeeAuth = (onClose: () => void) => {
       });
 
       if (error) {
+        console.error('❌ Employee signup error:', error);
         toast({
           title: "Signup Failed",
           description: error.message,
@@ -108,16 +130,17 @@ export const useEmployeeAuth = (onClose: () => void) => {
       }
 
       if (data.user) {
+        console.log('✅ Employee account created successfully');
         toast({
           title: "Account Created Successfully",
           description: "Please check your email to confirm your account, then you can sign in.",
         });
         
-        // Reset form and switch to login tab
         resetForm();
         onClose();
       }
     } catch (error) {
+      console.error('❌ Unexpected employee signup error:', error);
       toast({
         title: "Signup Error",
         description: "An unexpected error occurred. Please try again.",

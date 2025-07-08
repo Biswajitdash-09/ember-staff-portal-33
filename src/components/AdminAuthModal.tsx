@@ -41,12 +41,15 @@ const AdminAuthModal = ({ open, onClose }: AdminAuthModalProps) => {
     setIsLoading(true);
 
     try {
+      console.log('🔐 Admin login attempt:', formData.email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email.trim(),
         password: formData.password.trim(),
       });
 
       if (error) {
+        console.error('❌ Admin login error:', error);
         toast({
           title: "Login Failed",
           description: error.message,
@@ -56,14 +59,28 @@ const AdminAuthModal = ({ open, onClose }: AdminAuthModalProps) => {
       }
 
       if (data.user) {
+        console.log('✅ User authenticated, checking admin role...');
+        
         // Check if user is an admin
-        const { data: roleData } = await supabase
+        const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', data.user.id)
           .single();
 
+        if (roleError) {
+          console.error('❌ Role check error:', roleError);
+          await supabase.auth.signOut();
+          toast({
+            title: "Access Error",
+            description: "Unable to verify admin access. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
         if (roleData?.role !== 'admin') {
+          console.log('❌ User is not an admin:', roleData);
           await supabase.auth.signOut();
           toast({
             title: "Access Denied",
@@ -73,6 +90,7 @@ const AdminAuthModal = ({ open, onClose }: AdminAuthModalProps) => {
           return;
         }
 
+        console.log('✅ Admin access confirmed, redirecting...');
         toast({
           title: "Login Successful",
           description: "Welcome back, Admin! Redirecting to dashboard...",
@@ -82,6 +100,7 @@ const AdminAuthModal = ({ open, onClose }: AdminAuthModalProps) => {
         navigate('/dashboard');
       }
     } catch (error) {
+      console.error('❌ Unexpected admin login error:', error);
       toast({
         title: "Login Error",
         description: "An unexpected error occurred. Please try again.",
@@ -234,10 +253,7 @@ const AdminAuthModal = ({ open, onClose }: AdminAuthModalProps) => {
             </form>
 
             <div className="text-center text-sm text-gray-600">
-              <p>Test Admin Login:</p>
-              <p className="font-mono text-xs bg-gray-100 p-2 rounded mt-1">
-                admin@company.com / AdminPass123!
-              </p>
+              <p>Create admin account first, then sign in with your credentials</p>
             </div>
           </TabsContent>
 

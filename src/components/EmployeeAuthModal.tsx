@@ -59,10 +59,7 @@ const EmployeeAuthModal = ({ open, onClose }: EmployeeAuthModalProps) => {
             />
             
             <div className="text-center text-sm text-gray-600">
-              <p>Test Employee Login:</p>
-              <p className="font-mono text-xs bg-gray-100 p-2 rounded mt-1">
-                alice.johnson@company.com / SecurePass123!
-              </p>
+              <p>Create employee account first, then sign in with your credentials</p>
             </div>
           </TabsContent>
 

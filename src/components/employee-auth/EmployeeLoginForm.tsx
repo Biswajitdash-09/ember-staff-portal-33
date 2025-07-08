@@ -14,8 +14,19 @@ interface EmployeeLoginFormProps {
   formData: {
     email: string;
     password: string;
+    name: string;
+    phone: string;
+    department: string;
+    role: string;
   };
-  setFormData: (data: { email: string; password: string }) => void;
+  setFormData: (data: {
+    email: string;
+    password: string;
+    name: string;
+    phone: string;
+    department: string;
+    role: string;
+  }) => void;
   onSubmit: (e: React.FormEvent) => void;
   isLoading: boolean;
 }

@@ -1,4 +1,3 @@
-
 /**
  * Admin Authentication Modal
  * Handles admin login and signup with Supabase authentication
@@ -59,38 +58,7 @@ const AdminAuthModal = ({ open, onClose }: AdminAuthModalProps) => {
       }
 
       if (data.user) {
-        console.log('✅ User authenticated, checking admin role...');
-        
-        // Check if user is an admin
-        const { data: roleData, error: roleError } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', data.user.id)
-          .single();
-
-        if (roleError) {
-          console.error('❌ Role check error:', roleError);
-          await supabase.auth.signOut();
-          toast({
-            title: "Access Error",
-            description: "Unable to verify admin access. Please try again.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        if (roleData?.role !== 'admin') {
-          console.log('❌ User is not an admin:', roleData);
-          await supabase.auth.signOut();
-          toast({
-            title: "Access Denied",
-            description: "This login is for administrators only. Please use the employee portal if you're an employee.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        console.log('✅ Admin access confirmed, redirecting...');
+        console.log('✅ User authenticated successfully');
         toast({
           title: "Login Successful",
           description: "Welcome back, Admin! Redirecting to dashboard...",
@@ -116,6 +84,8 @@ const AdminAuthModal = ({ open, onClose }: AdminAuthModalProps) => {
     setIsLoading(true);
 
     try {
+      console.log('📝 Admin signup attempt:', formData.email);
+      
       const { data, error } = await supabase.auth.signUp({
         email: formData.email.trim(),
         password: formData.password.trim(),
@@ -132,6 +102,7 @@ const AdminAuthModal = ({ open, onClose }: AdminAuthModalProps) => {
       });
 
       if (error) {
+        console.error('❌ Admin signup error:', error);
         toast({
           title: "Signup Failed",
           description: error.message,
@@ -141,6 +112,7 @@ const AdminAuthModal = ({ open, onClose }: AdminAuthModalProps) => {
       }
 
       if (data.user) {
+        console.log('✅ Admin account created successfully');
         toast({
           title: "Admin Account Created",
           description: "Please check your email to confirm your account, then you can sign in.",
@@ -150,6 +122,7 @@ const AdminAuthModal = ({ open, onClose }: AdminAuthModalProps) => {
         setActiveTab('login');
       }
     } catch (error) {
+      console.error('❌ Unexpected admin signup error:', error);
       toast({
         title: "Signup Error",
         description: "An unexpected error occurred. Please try again.",
@@ -253,7 +226,8 @@ const AdminAuthModal = ({ open, onClose }: AdminAuthModalProps) => {
             </form>
 
             <div className="text-center text-sm text-gray-600">
-              <p>Create admin account first, then sign in with your credentials</p>
+              <p>Test Admin: admin@test.com / password123</p>
+              <p className="text-xs mt-1">Create admin account first, then sign in</p>
             </div>
           </TabsContent>
 

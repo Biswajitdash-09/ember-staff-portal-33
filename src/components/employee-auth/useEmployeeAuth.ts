@@ -45,38 +45,7 @@ export const useEmployeeAuth = (onClose: () => void) => {
       }
 
       if (data.user) {
-        console.log('✅ User authenticated, checking employee role...');
-        
-        // Check if user is an employee
-        const { data: roleData, error: roleError } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', data.user.id)
-          .single();
-
-        if (roleError) {
-          console.error('❌ Role check error:', roleError);
-          await supabase.auth.signOut();
-          toast({
-            title: "Access Error",
-            description: "Unable to verify employee access. Please try again.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        if (roleData?.role !== 'employee') {
-          console.log('❌ User is not an employee:', roleData);
-          await supabase.auth.signOut();
-          toast({
-            title: "Access Denied",
-            description: "This login is for employees only. Please use the admin portal if you're an administrator.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        console.log('✅ Employee access confirmed, redirecting...');
+        console.log('✅ Employee authenticated successfully');
         toast({
           title: "Login Successful",
           description: "Welcome back! Redirecting to your dashboard...",

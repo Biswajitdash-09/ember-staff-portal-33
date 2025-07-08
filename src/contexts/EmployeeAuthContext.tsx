@@ -1,21 +1,39 @@
 
 /**
  * Employee Authentication Context
- * Provides employee authentication state throughout the app
- * Enhanced with better error handling and data validation
+ * Provides employee authentication state throughout the app using Supabase
  */
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { Employee } from '@/types/employee';
-import { validateEmployeeSession, EmployeeAuthData, clearEmployeeAuth } from '@/services/employeeAuthService';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Employee {
+  id: string;
+  auth_user_id: string;
+  employee_id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  department?: string;
+  role?: string;
+  join_date?: string;
+  profile_picture?: string;
+  manager?: string;
+  address?: string;
+  emergency_contact?: any;
+  base_salary?: number;
+  status: string;
+}
 
 interface EmployeeAuthContextType {
+  user: User | null;
+  session: Session | null;
   employee: Employee | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshEmployeeData: () => Promise<void>;
-  error: string | null;
 }
 
 const EmployeeAuthContext = createContext<EmployeeAuthContextType | undefined>(undefined);
@@ -25,66 +43,110 @@ interface EmployeeAuthProviderProps {
 }
 
 export const EmployeeAuthProvider = ({ children }: EmployeeAuthProviderProps) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const refreshEmployeeData = useCallback(async (): Promise<void> => {
+  const fetchEmployeeData = async (userId: string) => {
     try {
-      setError(null);
-      const authData = validateEmployeeSession();
-      
-      if (authData) {
-        // Validate employee data integrity
-        if (!authData.employee || !authData.employee.id || !authData.employee.name) {
-          throw new Error('Invalid employee data structure');
-        }
-        
-        console.log('✅ Employee data refreshed successfully:', authData.employee.name);
-        setEmployee(authData.employee);
-      } else {
-        console.log('❌ No valid session found, clearing employee data');
-        setEmployee(null);
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('auth_user_id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching employee data:', error);
+        return null;
       }
+
+      return data;
     } catch (error) {
-      console.error('❌ Error refreshing employee data:', error);
-      setError(error instanceof Error ? error.message : 'Failed to refresh employee data');
-      setEmployee(null);
-      // Clear potentially corrupted session
-      clearEmployeeAuth();
-    } finally {
-      setIsLoading(false);
+      console.error('Error fetching employee data:', error);
+      return null;
     }
-  }, []);
+  };
+
+  const refreshEmployeeData = async () => {
+    if (user) {
+      const employeeData = await fetchEmployeeData(user.id);
+      setEmployee(employeeData);
+    }
+  };
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      console.log('🔄 Initializing employee authentication...');
-      await refreshEmployeeData();
-    };
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          // Check if user is an employee
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .single();
 
-    initializeAuth();
-  }, [refreshEmployeeData]);
+          if (roleData?.role === 'employee') {
+            const employeeData = await fetchEmployeeData(session.user.id);
+            setEmployee(employeeData);
+          } else {
+            setEmployee(null);
+          }
+        } else {
+          setEmployee(null);
+        }
+        
+        setIsLoading(false);
+      }
+    );
 
-  const logout = useCallback(() => {
-    try {
-      console.log('🚪 Logging out employee...');
-      clearEmployeeAuth();
-      setEmployee(null);
-      setError(null);
-    } catch (error) {
-      console.error('❌ Error during logout:', error);
-      setError('Failed to logout properly. Please clear your browser cache.');
-    }
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        // Initialize employee data for existing session
+        setTimeout(async () => {
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .single();
+
+          if (roleData?.role === 'employee') {
+            const employeeData = await fetchEmployeeData(session.user.id);
+            setEmployee(employeeData);
+          }
+          setIsLoading(false);
+        }, 0);
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
+  const logout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
+    setEmployee(null);
+  };
+
   const value = {
+    user,
+    session,
     employee,
-    isAuthenticated: !!employee,
+    isAuthenticated: !!user && !!employee,
     isLoading,
     logout,
-    refreshEmployeeData,
-    error
+    refreshEmployeeData
   };
 
   return (

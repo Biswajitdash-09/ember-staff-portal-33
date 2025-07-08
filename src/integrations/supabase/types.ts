@@ -14,7 +14,120 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      admin_users: {
+        Row: {
+          company_address: string | null
+          company_name: string | null
+          company_phone: string | null
+          created_at: string
+          email: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_address?: string | null
+          company_name?: string | null
+          company_phone?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_address?: string | null
+          company_name?: string | null
+          company_phone?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      employees: {
+        Row: {
+          address: string | null
+          auth_user_id: string | null
+          base_salary: number | null
+          created_at: string
+          department: string | null
+          email: string
+          emergency_contact: Json | null
+          employee_id: string
+          id: string
+          join_date: string | null
+          manager: string | null
+          name: string
+          phone: string | null
+          profile_picture: string | null
+          role: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          auth_user_id?: string | null
+          base_salary?: number | null
+          created_at?: string
+          department?: string | null
+          email: string
+          emergency_contact?: Json | null
+          employee_id: string
+          id?: string
+          join_date?: string | null
+          manager?: string | null
+          name: string
+          phone?: string | null
+          profile_picture?: string | null
+          role?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          auth_user_id?: string | null
+          base_salary?: number | null
+          created_at?: string
+          department?: string | null
+          email?: string
+          emergency_contact?: Json | null
+          employee_id?: string
+          id?: string
+          join_date?: string | null
+          manager?: string | null
+          name?: string
+          phone?: string | null
+          profile_picture?: string | null
+          role?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

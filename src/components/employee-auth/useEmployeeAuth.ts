@@ -1,19 +1,23 @@
 
 /**
  * Employee Authentication Hook
- * Handles authentication logic and state management
+ * Handles both login and signup for employees using Supabase
  */
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
-import { authenticateEmployee, storeEmployeeAuth } from '@/services/employeeAuthService';
+import { supabase } from "@/integrations/supabase/client";
 
 export const useEmployeeAuth = (onClose: () => void) => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
+    name: '',
+    phone: '',
+    department: '',
+    role: ''
   });
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -22,60 +26,48 @@ export const useEmployeeAuth = (onClose: () => void) => {
     e.preventDefault();
     setIsLoading(true);
 
-    console.log('🚀 Starting login process with:', {
-      email: formData.email,
-      password: formData.password ? '***' : 'empty'
-    });
-
     try {
-      // Trim whitespace from inputs
-      const email = formData.email.trim();
-      const password = formData.password.trim();
-      
-      if (!email || !password) {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email.trim(),
+        password: formData.password.trim(),
+      });
+
+      if (error) {
         toast({
-          title: "Validation Error",
-          description: "Please enter both email and password.",
+          title: "Login Failed",
+          description: error.message,
           variant: "destructive",
         });
-        setIsLoading(false);
         return;
       }
 
-      // Validate credentials against employee records
-      const authData = authenticateEmployee(email, password);
-      
-      if (authData) {
-        console.log('✅ Login successful, storing auth data');
-        // Store authentication data
-        storeEmployeeAuth(authData);
+      if (data.user) {
+        // Check if user is an employee
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', data.user.id)
+          .single();
 
-        // Reset form first
-        setFormData({ email: '', password: '' });
-        
-        // Close modal
-        onClose();
+        if (roleData?.role !== 'employee') {
+          await supabase.auth.signOut();
+          toast({
+            title: "Access Denied",
+            description: "This login is for employees only. Please use the admin portal if you're an administrator.",
+            variant: "destructive",
+          });
+          return;
+        }
 
-        // Show success message
         toast({
           title: "Login Successful",
-          description: `Welcome ${authData.employee.name}! Redirecting to your dashboard...`,
+          description: "Welcome back! Redirecting to your dashboard...",
         });
 
-        // Navigate after a short delay to ensure the toast is visible
-        setTimeout(() => {
-          navigate('/employee-dashboard');
-        }, 1500);
-      } else {
-        console.log('❌ Login failed - invalid credentials');
-        toast({
-          title: "Invalid Credentials",
-          description: "The email or password you entered is incorrect. Please try again.",
-          variant: "destructive",
-        });
+        onClose();
+        navigate('/employee-dashboard');
       }
     } catch (error) {
-      console.error('💥 Login error:', error);
       toast({
         title: "Login Error",
         description: "An unexpected error occurred. Please try again.",
@@ -86,16 +78,65 @@ export const useEmployeeAuth = (onClose: () => void) => {
     }
   };
 
-  const fillCredentials = (email: string, password: string) => {
-    setFormData({ email, password });
-    toast({
-      title: "Credentials Filled",
-      description: "You can now click Sign In to login.",
-    });
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email.trim(),
+        password: formData.password.trim(),
+        options: {
+          emailRedirectTo: `${window.location.origin}/employee-dashboard`,
+          data: {
+            name: formData.name.trim(),
+            phone: formData.phone.trim(),
+            department: formData.department,
+            role: formData.role.trim(),
+            join_date: new Date().toISOString().split('T')[0],
+          }
+        }
+      });
+
+      if (error) {
+        toast({
+          title: "Signup Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data.user) {
+        toast({
+          title: "Account Created Successfully",
+          description: "Please check your email to confirm your account, then you can sign in.",
+        });
+        
+        // Reset form and switch to login tab
+        resetForm();
+        onClose();
+      }
+    } catch (error) {
+      toast({
+        title: "Signup Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const resetForm = () => {
-    setFormData({ email: '', password: '' });
+    setFormData({
+      email: '',
+      password: '',
+      name: '',
+      phone: '',
+      department: '',
+      role: ''
+    });
   };
 
   return {
@@ -103,7 +144,7 @@ export const useEmployeeAuth = (onClose: () => void) => {
     formData,
     setFormData,
     handleLogin,
-    fillCredentials,
+    handleSignup,
     resetForm
   };
 };

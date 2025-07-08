@@ -1,15 +1,15 @@
 
 /**
  * Employee Authentication Modal
- * Separate login interface for employees with real credential validation
+ * Now includes both login and signup functionality for employees
  */
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { generateEmployeeData } from '@/utils/employeeDataGenerator';
-import { useEmployeeAuth } from './employee-auth/useEmployeeAuth';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EmployeeLoginForm from './employee-auth/EmployeeLoginForm';
-import SampleCredentials from './employee-auth/SampleCredentials';
+import EmployeeSignupForm from './employee-auth/EmployeeSignupForm';
+import { useEmployeeAuth } from './employee-auth/useEmployeeAuth';
 
 interface EmployeeAuthModalProps {
   open: boolean;
@@ -17,62 +17,64 @@ interface EmployeeAuthModalProps {
 }
 
 const EmployeeAuthModal = ({ open, onClose }: EmployeeAuthModalProps) => {
-  const [sampleCredentials, setSampleCredentials] = useState<Array<{email: string, password: string}>>([]);
+  const [activeTab, setActiveTab] = useState('login');
   
   const {
     isLoading,
     formData,
     setFormData,
     handleLogin,
-    fillCredentials,
+    handleSignup,
     resetForm
   } = useEmployeeAuth(onClose);
-
-  // Load sample credentials when modal opens
-  useEffect(() => {
-    if (open) {
-      const employees = generateEmployeeData();
-      const activeEmployees = employees.filter(emp => 
-        emp.status === 'Active' && emp.loginCredentials?.isActive
-      ).slice(0, 5); // Show first 5 active employees
-      
-      const credentials = activeEmployees.map(emp => ({
-        email: emp.loginCredentials!.loginEmail,
-        password: emp.loginCredentials!.password
-      }));
-      
-      setSampleCredentials(credentials);
-    }
-  }, [open]);
 
   // Reset form when modal closes
   const handleClose = () => {
     resetForm();
+    setActiveTab('login');
     onClose();
   };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            Employee Portal Login
+            Employee Portal
           </DialogTitle>
         </DialogHeader>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <EmployeeLoginForm
-            formData={formData}
-            setFormData={setFormData}
-            onSubmit={handleLogin}
-            isLoading={isLoading}
-          />
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="login">Sign In</TabsTrigger>
+            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+          </TabsList>
 
-          <SampleCredentials
-            credentials={sampleCredentials}
-            onFillCredentials={fillCredentials}
-          />
-        </div>
+          <TabsContent value="login" className="space-y-4">
+            <EmployeeLoginForm
+              formData={formData}
+              setFormData={setFormData}
+              onSubmit={handleLogin}
+              isLoading={isLoading}
+            />
+            
+            <div className="text-center text-sm text-gray-600">
+              <p>Test Employee Login:</p>
+              <p className="font-mono text-xs bg-gray-100 p-2 rounded mt-1">
+                alice.johnson@company.com / SecurePass123!
+              </p>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="signup" className="space-y-4">
+            <EmployeeSignupForm
+              formData={formData}
+              setFormData={setFormData}
+              onSubmit={handleSignup}
+              isLoading={isLoading}
+            />
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

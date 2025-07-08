@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import AuthModal from '@/components/AuthModal';
+import AdminAuthModal from '@/components/AdminAuthModal';
 import EmployeeAuthModal from '@/components/EmployeeAuthModal';
 import LandingNavigation from '@/components/landing/LandingNavigation';
 import LandingHero from '@/components/landing/LandingHero';
@@ -43,7 +43,7 @@ const Index = () => {
       </div>
 
       {/* Auth Modals */}
-      <AuthModal open={showAuth} onClose={() => setShowAuth(false)} />
+      <AdminAuthModal open={showAuth} onClose={() => setShowAuth(false)} />
       <EmployeeAuthModal open={showEmployeeAuth} onClose={() => setShowEmployeeAuth(false)} />
     </div>
   );

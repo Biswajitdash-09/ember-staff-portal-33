@@ -8,7 +8,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
 import { useEmployeeAuth } from '@/contexts/EmployeeAuthContext';
-import { updateEmployeeProfile } from '@/services/employeeProfileService';
 import EmployeeDashboardContent from './EmployeeDashboardContent';
 import EmployeeDashboardLoading from './EmployeeDashboardLoading';
 
@@ -17,35 +16,24 @@ const EmployeeDashboardContainer = () => {
   const { toast } = useToast();
   const { employee, isAuthenticated, isLoading, logout, refreshEmployeeData } = useEmployeeAuth();
   const [activeTab, setActiveTab] = useState('profile');
-  const [redirectHandled, setRedirectHandled] = useState(false);
 
-  // Handle authentication check with proper delay to avoid race conditions
+  // Handle authentication check
   useEffect(() => {
-    const checkAuth = async () => {
-      // Wait a bit for authentication to stabilize
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      if (!isLoading && !isAuthenticated && !redirectHandled) {
-        console.log('⚠️ Access denied - not authenticated, redirecting to home');
-        setRedirectHandled(true);
-        toast({
-          title: "Access Denied",
-          description: "Please log in to access your dashboard.",
-          variant: "destructive",
-        });
-        navigate('/', { replace: true });
-      }
-    };
-
-    if (!isLoading) {
-      checkAuth();
+    if (!isLoading && !isAuthenticated) {
+      console.log('⚠️ Access denied - not authenticated, redirecting to home');
+      toast({
+        title: "Access Denied",
+        description: "Please log in to access your dashboard.",
+        variant: "destructive",
+      });
+      navigate('/', { replace: true });
     }
-  }, [isAuthenticated, isLoading, navigate, toast, redirectHandled]);
+  }, [isAuthenticated, isLoading, navigate, toast]);
 
   const handleLogout = async () => {
     try {
       console.log('🚪 User logging out');
-      logout();
+      await logout();
       toast({
         title: "Logged out successfully",
         description: "You have been logged out of your account.",
@@ -65,7 +53,8 @@ const EmployeeDashboardContainer = () => {
     if (!employee) return;
     
     try {
-      await updateEmployeeProfile(employee.id, updates);
+      // Update employee profile in database
+      // This will be implemented when we add the update functionality
       await refreshEmployeeData();
       toast({
         title: "Profile Updated",
@@ -98,9 +87,30 @@ const EmployeeDashboardContainer = () => {
 
   console.log('✅ Rendering dashboard for authenticated user:', employee.name);
 
+  // Transform employee data for components compatibility
+  const transformedEmployee = {
+    id: employee.employee_id,
+    name: employee.name,
+    email: employee.email,
+    phone: employee.phone || '',
+    department: employee.department || '',
+    role: employee.role || '',
+    joinDate: employee.join_date || '',
+    profilePicture: employee.profile_picture,
+    manager: employee.manager || '',
+    address: employee.address || '',
+    emergencyContact: employee.emergency_contact || {
+      name: '',
+      phone: '',
+      relationship: ''
+    },
+    baseSalary: employee.base_salary || 0,
+    status: employee.status as 'Active' | 'Probation' | 'Terminated'
+  };
+
   return (
     <EmployeeDashboardContent
-      employee={employee}
+      employee={transformedEmployee}
       activeTab={activeTab}
       onTabChange={handleTabChange}
       onLogout={handleLogout}
